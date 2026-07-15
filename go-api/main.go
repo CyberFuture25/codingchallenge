@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
@@ -81,6 +82,7 @@ func QRFactorization(a [][]float64) ([][]float64, [][]float64) {
 
 func main() {
 	app := fiber.New()
+	app.Use(cors.New())
 	app.Use(recover.New()) // Esto evitará cualquier pánico y prevendrá que la conexión se quede bloqueada.
 	app.Use(logger.New())
 
