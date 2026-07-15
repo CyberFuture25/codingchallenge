@@ -3,7 +3,7 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 
 function isDiagonal(m) {
-  // A diagonal matrix must be square [3]
+  // Una matriz diagonal debe ser cuadrada.
   if (!m || m.length === 0 || m.length !== m.length) return false;
   for (let i = 0; i < m.length; i++) {
     for (let j = 0; j < m[i].length; j++) {

@@ -22,14 +22,14 @@ type QRResult struct {
 	R             [][]float64 `json:"r"`
 }
 
-// RotateMatrix: Specifically handles M x N to N x M transformation
+// RotateMatrix: Específicamente maneja la transformación de M x N a N x M.
 func RotateMatrix(m [][]float64) [][]float64 {
 	if len(m) == 0 || len(m) == 0 { return m }
 	
 	numRows := len(m)    // 4
 	numCols := len(m) // 3
 
-	// Result must be 3 rows x 4 columns
+	// El resultado debe tener 3 filas x 4 columnas.
 	result := make([][]float64, numCols)
 	for i := range result {
 		result[i] = make([]float64, numRows)
@@ -37,21 +37,21 @@ func RotateMatrix(m [][]float64) [][]float64 {
 
 	for i := 0; i < numRows; i++ {
 		for j := 0; j < numCols; j++ {
-			// Mathematical 90-degree clockwise rotation
+			// Rotación matemática de 90 grados en el sentido de las agujas del reloj
 			result[j][numRows-1-i] = m[i][j]
 		}
 	}
 	return result
 }
 
-// QRFactorization: Gram-Schmidt logic for M x N matrices
+// QRFactorization: Lógica de Gram-Schmidt para matrices M x N
 func QRFactorization(a [][]float64) ([][]float64, [][]float64) {
 	if len(a) == 0 || len(a) == 0 { return nil, nil }
 	
-	M := len(a)    // 4 rows
-	N := len(a) // 3 columns
+	M := len(a)    // 4 filas
+	N := len(a) // 3 columnas
 
-	// Q is M x N (4x3), R is N x N (3x3)
+	// Q es M x N (4x3), R es N x N (3x3)
 	q := make([][]float64, M)
 	for i := range q { q[i] = make([]float64, N) }
 	r := make([][]float64, N)
@@ -81,7 +81,7 @@ func QRFactorization(a [][]float64) ([][]float64, [][]float64) {
 
 func main() {
 	app := fiber.New()
-	app.Use(recover.New()) // This will catch any panic and prevent "socket hang up"
+	app.Use(recover.New()) // Esto evitará cualquier pánico y prevendrá que la conexión se quede bloqueada.
 	app.Use(logger.New())
 
 	app.Post("/process", func(c *fiber.Ctx) error {
@@ -93,14 +93,14 @@ func main() {
 			return c.Status(400).JSON(fiber.Map{"error": "Empty matrix"})
 		}
 
-		// Perform operations required by the challenge [1]
+		// Realizar las operaciones requeridas por el desafío. 
 		rotated := RotateMatrix(req.Matrix)
 		q, r := QRFactorization(req.Matrix)
 
 		payload := QRResult{RotatedMatrix: rotated, Q: q, R: r}
 		jsonData, _ := json.Marshal(payload)
 
-		// Forwarding to Node.js service for additional operations [2]
+		// Reenviando al servicio Node.js para operaciones adicionales. 
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Post("http://node-service:3000/statistics", "application/json", bytes.NewBuffer(jsonData))
 		
