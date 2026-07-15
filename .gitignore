@@ -1,0 +1,24 @@
+# Binarios y archivos temporales de Go
+go-api/bin/
+go-api/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Dependencias y logs de Node.js
+node-api/node_modules/
+node-api/.env
+node-api/npm-debug.log*
+node-api/yarn-debug.log*
+node-api/yarn-error.log*
+
+# Archivos de Sistema y Docker
+.DS_Store
+Thumbs.db
+.docker-temp/
+
+# IDEs 
+.vscode/
+.idea/

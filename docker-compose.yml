@@ -1,0 +1,10 @@
+services:
+  go-service:
+    build: ./go-api
+    ports:
+      - "8080:8080"
+
+  node-service:
+    build: ./node-api
+    ports:
+      - "3000:3000"
