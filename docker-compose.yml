@@ -1,10 +1,22 @@
 services:
-  go-service:
+  # API go
+  go-api:
     build: ./go-api
     ports:
       - "8080:8080"
+    depends_on:
+      - node-api
 
-  node-service:
+  # 2. Servicio de Node.js
+  node-api:
     build: ./node-api
     ports:
+      - "3001:3001"
+
+  # 3. Servicio de Frontend
+  frontend:
+    build: ./frontend
+    ports:
       - "3000:3000"
+    depends_on:
+      - go-api
