@@ -8,7 +8,7 @@ function App() {
   const handleProcess = async () => {
     setLoading(true);
     try {
-      // Reemplazado con tu URL pública de Railway
+      // URL pública de Railway
       const response = await fetch(
         "https://codingchallenge-production-674f.up.railway.app/process",
         {

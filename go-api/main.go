@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -23,14 +24,14 @@ type QRResult struct {
 	R             [][]float64 `json:"r"`
 }
 
-// RotateMatrix: Maneja la transformación de M x N a N x M de forma correcta.
+// RotateMatrix: Maneja la rotación de M x N a N x M de forma matemática y correcta.
 func RotateMatrix(m [][]float64) [][]float64 {
-	if len(m) == 0 || len(m[0]) == 0 { 
-		return m 
+	if len(m) == 0 || len(m[0]) == 0 {
+		return m
 	}
 	
 	numRows := len(m)    
-	numCols := len(m[0]) // Corregido: lee el número de columnas reales
+	numCols := len(m[0]) // lee el número real de columnas de la matriz rectangular
 
 	result := make([][]float64, numCols)
 	for i := range result {
@@ -39,58 +40,58 @@ func RotateMatrix(m [][]float64) [][]float64 {
 
 	for i := 0; i < numRows; i++ {
 		for j := 0; j < numCols; j++ {
-			// Rotación de 90 grados en el sentido de las agujas del reloj
+			// Rotación de 90 grados en sentido de las agujas del reloj
 			result[j][numRows-1-i] = m[i][j]
 		}
 	}
 	return result
 }
 
-// QRFactorization: Lógica de Gram-Schmidt para matrices M x N
+// QRFactorization: Lógica de Gram-Schmidt que soporta correctamente matrices rectangulares M x N
 func QRFactorization(a [][]float64) ([][]float64, [][]float64) {
-	if len(a) == 0 || len(a[0]) == 0 { 
-		return nil, nil 
+	if len(a) == 0 || len(a[0]) == 0 {
+		return nil, nil
 	}
 	
 	M := len(a)    
-	N := len(a[0]) // Corregido: lee el número de columnas reales
+	N := len(a[0]) //  lee el número real de columnas de la matriz rectangular
 
-	// Q es M x N, R es N x N
+	// Q es de tamaño M x N, R es de tamaño N x N
 	q := make([][]float64, M)
-	for i := range q { 
-		q[i] = make([]float64, N) 
+	for i := range q {
+		q[i] = make([]float64, N)
 	}
 	r := make([][]float64, N)
-	for i := range r { 
-		r[i] = make([]float64, N) 
+	for i := range r {
+		r[i] = make([]float64, N)
 	}
 
 	for j := 0; j < N; j++ {
 		v := make([]float64, M)
-		for i := 0; i < M; i++ { 
-			v[i] = a[i][j] 
+		for i := 0; i < M; i++ {
+			v[i] = a[i][j]
 		}
 
 		for i := 0; i < j; i++ {
 			var dot float64
-			for k := 0; k < M; k++ { 
-				dot += q[k][i] * a[k][j] 
+			for k := 0; k < M; k++ {
+				dot += q[k][i] * a[k][j]
 			}
 			r[i][j] = dot
-			for k := 0; k < M; k++ { 
-				v[k] -= r[i][j] * q[k][i] 
+			for k := 0; k < M; k++ {
+				v[k] -= r[i][j] * q[k][i]
 			}
 		}
 
 		var norm float64
-		for i := 0; i < M; i++ { 
-			norm += v[i] * v[i] 
+		for i := 0; i < M; i++ {
+			norm += v[i] * v[i]
 		}
 		r[j][j] = math.Sqrt(norm)
 
 		for i := 0; i < M; i++ {
-			if r[j][j] > 1e-12 { 
-				q[i][j] = v[i] / r[j][j] 
+			if r[j][j] > 1e-12 {
+				q[i][j] = v[i] / r[j][j]
 			}
 		}
 	}
@@ -100,10 +101,13 @@ func QRFactorization(a [][]float64) ([][]float64, [][]float64) {
 func main() {
 	app := fiber.New()
 	
-	// Middleware esencial para evitar errores de pánico y habilitar CORS
+	// Middleware esencial de recuperación ante pánicos, logger e inyección de CORS
 	app.Use(recover.New())
 	app.Use(logger.New())
-	app.Use(cors.New()) // Habilita peticiones cruzadas desde tu Frontend
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 
 	app.Post("/process", func(c *fiber.Ctx) error {
 		var req MatrixRequest
@@ -114,28 +118,38 @@ func main() {
 			return c.Status(400).JSON(fiber.Map{"error": "Empty matrix"})
 		}
 
-		// Realizar las operaciones de rotación y factorización QR
+		// Realizar operaciones en Go
 		rotated := RotateMatrix(req.Matrix)
 		q, r := QRFactorization(req.Matrix)
 
 		payload := QRResult{RotatedMatrix: rotated, Q: q, R: r}
 		jsonData, _ := json.Marshal(payload)
 
-		// Envío de datos al servicio Node.js (asegúrate de que el nombre del host sea correcto en tu red Docker)
+		
+		nodeURL := os.Getenv("NODE_SERVICE_URL")
+		if nodeURL == "" {
+			
+			nodeURL = "http://node-service.railway.internal:3000"
+		}
+
 		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Post("http://node-service:3000/statistics", "application/json", bytes.NewBuffer(jsonData))
+		resp, err := client.Post(nodeURL+"/statistics", "application/json", bytes.NewBuffer(jsonData))
 		
 		if err != nil {
-			// Alternativa local/fallback en caso de que no uses Docker compose internamente para nombres de dominio
+			
 			resp, err = client.Post("http://localhost:3000/statistics", "application/json", bytes.NewBuffer(jsonData))
 			if err != nil {
-				return c.Status(500).JSON(fiber.Map{"error": "Node service unreachable"})
+				return c.Status(500).JSON(fiber.Map{
+					"error": "El microservicio de estadísticas (Node.js) no está disponible.",
+				})
 			}
 		}
 		defer resp.Body.Close()
 
 		var stats interface{}
-		json.NewDecoder(resp.Body).Decode(&stats)
+		if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to parse Node.js stats"})
+		}
 
 		return c.JSON(fiber.Map{
 			"status":           "success",
@@ -144,5 +158,6 @@ func main() {
 		})
 	})
 
+	// El puerto de escucha del backend
 	app.Listen(":8080")
 }
