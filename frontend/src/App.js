@@ -8,6 +8,7 @@ function App() {
   const handleProcess = async () => {
     setLoading(true);
     try {
+      // Reemplazado con tu URL pública de Railway
       const response = await fetch(
         "https://codingchallenge-production-674f.up.railway.app/process",
         {
@@ -16,10 +17,17 @@ function App() {
           body: JSON.stringify({ matrix: JSON.parse(matrixInput) }),
         },
       );
+
+      if (!response.ok) {
+        throw new Error("La API retornó un código de error.");
+      }
+
       const data = await response.json();
       setResults(data);
     } catch (error) {
-      alert("Error al procesar la matriz. Verifique el formato JSON.");
+      alert(
+        "Error al procesar la matriz. Verifique el formato JSON y la disponibilidad del servidor.",
+      );
     }
     setLoading(false);
   };
@@ -84,31 +92,37 @@ function App() {
               <li className="flex justify-between">
                 <span>Suma Total:</span>
                 <span className="font-mono font-bold">
-                  {results.node_statistics?.total_sum}
+                  {results.node_statistics?.total_sum ?? "N/A"}
                 </span>
               </li>
               <li className="flex justify-between">
                 <span>Promedio:</span>
                 <span className="font-mono font-bold">
-                  {results.node_statistics?.average?.toFixed(2)}
+                  {results.node_statistics?.average !== undefined
+                    ? results.node_statistics.average.toFixed(2)
+                    : "N/A"}
                 </span>
               </li>
               <li className="flex justify-between">
                 <span>Valor Máximo:</span>
                 <span className="font-mono font-bold">
-                  {results.node_statistics?.max_value}
+                  {results.node_statistics?.max_value ?? "N/A"}
                 </span>
               </li>
               <li className="flex justify-between">
                 <span>Valor Mínimo:</span>
                 <span className="font-mono font-bold">
-                  {results.node_statistics?.min_value}
+                  {results.node_statistics?.min_value ?? "N/A"}
                 </span>
               </li>
               <li className="flex justify-between">
                 <span>¿Es Matriz Diagonal?:</span>
                 <span
-                  className={`font-bold ${results.node_statistics?.is_diagonal ? "text-green-600" : "text-red-600"}`}
+                  className={`font-bold ${
+                    results.node_statistics?.is_diagonal
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
                 >
                   {results.node_statistics?.is_diagonal ? "Sí" : "No"}
                 </span>
